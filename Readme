@@ -1,0 +1,116 @@
+Readme Tema 3 PC
+Nuta Mihaela-Madalina
+
+	In cadrul acestei teme, in main, am asteptat comenzi de la stdin exact ca si
+in tema 2, cu ajutorul structurii fd_set.
+	Pentru fiecare comanda primita am verificat sa fie o comanda valida. Daca e
+o comanda valida, apelez functia corespunzatoare pentru comanda. Daca nu este
+comanda valida, afisez un mesaj de eroare: "Please enter a valid command.".
+	
+--------------------------------------------------------------------------------
+|_______________________Functiile_specifice_comenzilor_________________________|
+--------------------------------------------------------------------------------
+
+Host pentru fiecare comanda: "ec2-3-8-116-10.eu-west-2.compute.amazonaws.com"
+
+Comanda register: registerCommand
+	Am citit username, password, am eliminat ultimul caracter (newline) setand
+ultima pozitie din string cu '\0'. Am creat payload-ul cu informatia primita
+(username si parola) si am creat mesajul cu ajutorul functiei "compute_post_
+request", dupa care l-am trimis cu functia "send_to_server".
+
+Comanda login: loginCommand
+	Exact ca la register, singura diferenta fiind ca aici puteam sa primesc
+mesaj de eroare, ceea ce insemna ca nu mai parsam cookie-ul. Daca nu primeam
+mesaj de eroare, cautam cu ajutorul functiei strstr unde incepe cookie-ul, il
+parsam si il returnam.
+
+Comanda enter_library: enterLibraryCommand
+	Am creat un mesaj cu host-ul si url-ul specificate adaugand cookie-ul primit
+la login. Doar daca sunt logat creez un token, deoarece, daca nu sunt logat,
+primesc un mesaj de eroare. Returnez token-ul.
+
+Comanda get_books: getBooksCommand
+	Am creat un mesaj cu url-ul "/api/v1/tema/library/books" si l-am trimis
+catre server. Am primit raspuns, l-am afisat.
+
+Comanda get_book: getBookCommand
+	Am preluat input legat de id-ul cartii, am verificat sa fie numar. Daca nu
+este numar, oblig utilizatorul sa introduca un numar si acest lucru se repeta
+pana cand introduce un numar, afisand un mesaj de eroare intre timp, si anume:
+"Please insert a number." Dupa ce am primit id-ul cartii, am creat mesajul cu
+url-ul /api/v1/tema/library/books/%s, unde %s este id-ul cartii despre care cer
+informatii. Am trimis mesaj la server, am primit raspuns si l-am afisat dupa
+aceea. Token-ul l-am trimis ca si parametru la functia compute_get_request.
+
+Comanda add_book: addBookCommand
+	Cea mai lunga functie (yikes). Am primit de la stdin informatiile despre
+cartea care urmeaza sa fie adaugata pe server, in librarie. Titlu, autor, gen,
+editura si numarul de pagini. Am obligat utilizatorul sa adauge un NUMAR. Daca
+utilizatorul nu introduce un numar, programul il obliga sa introduca si afiseaza
+un mesaj de eroare pana cand un numar nu este introdus. Am creat payload-ul
+exact cum este specificat in cerinta, am adaugat cookie-ul si am trimis si token
+pentru a fi adaugat si acesta in mesaj, in functia compute_post_request.
+
+Comanda delete_book: deleteBookCommand
+	Este la fel ca la get_book, doar ca functia apelata este compute_delete_
+request. Functiile sunt aproapela fel, detaliez asta putin mai tarziu.
+
+Comanda logout: logoutCommand
+	La logout initializez mesajul, setez variabila logged in 0 daca sunt logat
+si trimit mesajul de tip get catre server, afisez mesajul primit de la server
+dupa care, in main, token = NULL si cookie = NULL, deoarece, la o eventuala
+reconectare a vreunui alt client, acesta nu trebuie sa aiba drepturile ramase
+de la clientul de dinainte. Puteam retine pentru fiecare client daca s-a
+conectat vreodata si informatiile despre drepturile de acces la biblioteca, insa
+nu cred ca acesta era scopul temei. Daca nu este logat, afisez mesajul "You are
+not logged in."
+
+Comanda exit: dau return 0;
+
+--------------------------------------------------------------------------------
+|_______________________________Alte_detalii___________________________________|
+--------------------------------------------------------------------------------
+
+Alte detalii:
+ 	Am deschis si inchis conexiunea cu serverul la fiecare cerere pentru a nu
+ avea probleme legate de faptul ca serverul inchide conexiunea/timeout, deoarece
+ am patit sa nu pot trimite dupa un anumit timp.
+ 	Legat de parsare, am ales sa nu folosesc biblioteca pentru json, ci am facut
+parsare normala, am creat un string dupa formatul prezent in enunt, de exemplu:
+{"password": "mada", "username": "mada"} pe care l-am adaugat in payload. Pentru
+parsarea mesajului primit de la server, am folosit functia strstr pentru a imi
+aseza un pointer exact unde gaseste in mesajul de la server anumite mesaje care
+imi indicau ce fel de mesaj am primit, de exemplu, "error" sau "Set-Cookie".
+Pentru cookie si token, am preluat ce se afla intre ghilimele dupa string-ul
+"Set-Cookie", respectiv {"token":".
+	Am folosit tot scheletul din laboratorul de http, insa putin modificat. La
+nivelul functiilor compute_get_request si compute_post_request am adaugat
+parametrul token. Daca acest parametru este null inseamna ca  nu imi trebuie in
+acea comanda, cum ar fi in comenzile register, login, enter_library. Daca nu
+este null, inseamna ca este o comanda unde trebuie sa demonstrez accesul la
+librarie si verific: daca token nu este null, creez payload-ul cum s-a specificat
+in cerinta: Authorization: Bearer %s, unde %s este token-ul.
+	Pe langa scheletul din laborator, am creat functia compute_delete_request,
+care este aproape la fel cu functia compute_get_request, doar ca in loc de GET,
+se trimite method_name = DELETE.
+	Dat fiind faptul ca inafara de client.c, codul nu este al meu, am lasat
+comentariile care erau deja in cod.
+	Flow-ul intregului program: primesc comanda de la stdin pe socket-ul 0,
+verific daca este comanda recunoscuta. Daca este comanda recunoscuta, apelez
+functia specifica acelei comenzi. Daca nu este recunoscuta, afisez mesajul:
+"Please enter a valid command.".
+
+	Feedback: tema a iesit relativ repede, insa, pot sa spun ca jumate din timp
+l-am petrecut facand debug la functia enter_library. Nu stiam ca la sfarsitul
+string-ului, la cookie, este \r\n in loc de \n..................................
+...............................mda :)), in rest, tema a fost foarte usoara.
+
+	Asa cum s-a specificat si pe forum ca putem, am lasat exact asa cum sunt
+mesajele de la serverm, fapt care nu creaza dubii in privinta a ceea ce afisez
+eu.
+	Later edit: am modificat putin bibliotecile incluse in helpers.h, pentru a
+putea avea mai putine in fisierul bookHelpers.h / bookHelpers.c, in care am
+introdus functiile folositoare pentru comenzile legate de carti, deci toate
+fisierele folosite din scheletul de laborator vor fi puse in arhiva.
+	Tab size readme: 4
